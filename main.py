@@ -1,72 +1,65 @@
-import os
-import time
-import schedule
-import pytz
-from datetime import datetime, timedelta
+from telethon import TelegramClient
 from flask import Flask
-from telegram import Bot
+import schedule
+import time
+import threading
+from datetime import datetime, timedelta
 
-# ======================
-# CONFIGURATION
-# ======================
-BOT_TOKEN = os.environ.get("BOT_TOKEN") or "YOUR_BOT_TOKEN_HERE"
-START_TIME = "10:00"  # HH:MM in 24hr format
-END_TIME = "22:00"    # HH:MM in 24hr format
-INTERVAL_MINUTES = 60  # post every X minutes
+# ==== CONFIGURATION ====
+API_ID = 123456     # Replace with your API ID
+API_HASH = 'your_api_hash_here'  # Replace with your API Hash
+PHONE_NUMBER = '+91xxxxxxxxxx'  # Your phone number linked to Telegram
 
-# ======================
-# TELEGRAM BOT SETUP
-# ======================
-bot = Bot(token=BOT_TOKEN)
+MESSAGE_TEXT = "Hello! This is an automated scheduled post."  # Message to send
+START_TIME = "10:00"  # Start posting time (24-hour format)
+END_TIME = "22:00"    # End posting time
+INTERVAL_MINUTES = 60  # Interval between messages in minutes
+# =======================
 
-# Function to get all joined group IDs (manually add if needed)
-GROUP_IDS = [
-    -1001234567890,  # Replace with your group IDs
-    -1009876543210
-]
-
-# Message to send
-POST_MESSAGE = "Hello! This is my scheduled message."
-
-# ======================
-# POSTING FUNCTION
-# ======================
-def send_message():
-    now = datetime.now(pytz.timezone("Asia/Kolkata")).strftime("%H:%M")
-    if START_TIME <= now <= END_TIME:
-        for chat_id in GROUP_IDS:
-            try:
-                bot.send_message(chat_id=chat_id, text=POST_MESSAGE)
-                print(f"[{now}] Sent to {chat_id}")
-            except Exception as e:
-                print(f"Failed to send to {chat_id}: {e}")
-    else:
-        print(f"[{now}] Outside active hours.")
-
-# ======================
-# SCHEDULER SETUP
-# ======================
-schedule.every(INTERVAL_MINUTES).minutes.do(send_message)
-
-# ======================
-# FLASK KEEP-ALIVE
-# ======================
-app = Flask(__name__)
+# Flask server for keep-alive
+app = Flask('')
 
 @app.route('/')
 def home():
-    return "Bot is alive!"
+    return "Bot is running!"
 
 def run_flask():
     app.run(host="0.0.0.0", port=8080)
 
-# ======================
-# RUN BOT
-# ======================
-if __name__ == "__main__":
-    import threading
-    threading.Thread(target=run_flask).start()
-    print("Bot started. Waiting for schedule...")
+# Telegram client
+client = TelegramClient('session', API_ID, API_HASH)
+
+async def send_message_to_all_groups():
+    async for dialog in client.iter_dialogs():
+        if dialog.is_group:
+            try:
+                await client.send_message(dialog.id, MESSAGE_TEXT)
+                print(f"Sent to: {dialog.name}")
+            except Exception as e:
+                print(f"Error sending to {dialog.name}: {e}")
+
+def job():
+    now = datetime.now().strftime("%H:%M")
+    if START_TIME <= now <= END_TIME:
+        print(f"Posting at {now}")
+        client.loop.create_task(send_message_to_all_groups())
+    else:
+        print(f"Outside schedule at {now}")
+
+def scheduler():
+    schedule.every(INTERVAL_MINUTES).minutes.do(job)
     while True:
         schedule.run_pending()
         time.sleep(1)
+
+def start_bot():
+    with client:
+        client.loop.create_task(client.start(phone=PHONE_NUMBER))
+        scheduler()
+
+if __name__ == "__main__":
+    # Run Flask in background
+    threading.Thread(target=run_flask).start()
+
+    # Start bot
+    threading.Thread(target=start_bot).start()
