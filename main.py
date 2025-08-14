@@ -6,9 +6,9 @@ import threading
 from datetime import datetime, timedelta
 
 # ==== CONFIGURATION ====
-API_ID = 123456     # Replace with your API ID
-API_HASH = 'your_api_hash_here'  # Replace with your API Hash
-PHONE_NUMBER = '+91xxxxxxxxxx'  # Your phone number linked to Telegram
+API_ID = 22339836     # Replace with your API ID
+API_HASH = '0531739986bb128f3a8a9d39a2bd6c11'  # Replace with your API Hash
+PHONE_NUMBER = '+6282294932904'  # Your phone number linked to Telegram
 
 MESSAGE_TEXT = "Hello! This is an automated scheduled post."  # Message to send
 START_TIME = "10:00"  # Start posting time (24-hour format)
