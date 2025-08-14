@@ -1,2 +1,5 @@
-pip install telethon flask schedule
-npm install -g localtunnel
+pyrogram==2.0.106
+tgcrypto
+schedule
+flask
+pyngrok
